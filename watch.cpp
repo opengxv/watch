@@ -14,103 +14,8 @@ HWND hWindow;
 #define MARK1 40320540000
 #define MARK2 40320550000
 
-const char* vk_strs[] = {
-	"CTRL-1",
-	"CTRL-2",
-	"CTRL-3",
-	"CTRL-4",
-	"CTRL-5",
-	"CTRL-6",
-	"CTRL-7",
-	"CTRL-8",
-	"CTRL-9",
-	"CTRL-0",
-	"ALT-1",
-	"ALT-2",
-	"ALT-3",
-	"ALT-4",
-	"ALT-5",
-	"ALT-6",
-	"ALT-7",
-	"ALT-8",
-	"ALT-9",
-	"ALT-0",
-	"ALT-F1",
-	"ALT-F2",
-	"ALT-F3",
-	"ALT-F5",
-	"ALT-F6",
-	"ALT-F7",
-	"ALT-F8",
-	"ALT-F9",
-	"ALT-F10",
-	"ALT-F11",
-	"ALT-F12",
-	"CTRL-F1",
-	"CTRL-F2",
-	"CTRL-F3",
-	"CTRL-F4",
-	"CTRL-F5",
-	"CTRL-F6",
-	"CTRL-F7",
-	"CTRL-F8",
-	"CTRL-F9",
-	"CTRL-F10",
-	"CTRL-F11",
-	"CTRL-F12",
-	"ALT-CTRL-1",
-	"ALT-CTRL-2",
-	"ALT-CTRL-3",
-	"ALT-CTRL-4",
-	"ALT-CTRL-5",
-	"ALT-CTRL-6",
-	"ALT-CTRL-7",
-	"ALT-CTRL-8",
-	"ALT-CTRL-9",
-	"ALT-CTRL-0",
-	"ALT-CTRL-F1",
-	"ALT-CTRL-F2",
-	"ALT-CTRL-F3",
-	"ALT-CTRL-F5",
-	"ALT-CTRL-F6",
-	"ALT-CTRL-F7",
-	"ALT-CTRL-F8",
-	"ALT-CTRL-F9",
-	"ALT-CTRL-F10",
-	"ALT-CTRL-F11",
-	"ALT-CTRL-F12",
-	"SHIFT-CTRL-F1",
-	"SHIFT-CTRL-F2",
-	"SHIFT-CTRL-F3",
-	"SHIFT-CTRL-F5",
-	"SHIFT-CTRL-F6",
-	"SHIFT-CTRL-F7",
-	"SHIFT-CTRL-F8",
-	"SHIFT-CTRL-F9",
-	"SHIFT-CTRL-F10",
-	"SHIFT-CTRL-F11",
-	"SHIFT-CTRL-F12",
-	"SHIFT-ALT-F1",
-	"SHIFT-ALT-F2",
-	"SHIFT-ALT-F3",
-	"SHIFT-ALT-F5",
-	"SHIFT-ALT-F6",
-	"SHIFT-ALT-F7",
-	"SHIFT-ALT-F8",
-	"SHIFT-ALT-F9",
-	"SHIFT-ALT-F10",
-	"SHIFT-ALT-F11",
-	"SHIFT-ALT-F12",
-	"SHIFT-CTRL-1",
-	"SHIFT-CTRL-2",
-	"SHIFT-CTRL-3",
-	"SHIFT-CTRL-4",
-	"SHIFT-CTRL-5",
-	"SHIFT-CTRL-6",
-	"SHIFT-CTRL-7",
-	"SHIFT-CTRL-8",
-	"SHIFT-CTRL-9",
-	"SHIFT-CTRL-0"
+std::map<std::string, std::string> s_map = {
+#include "s.h"
 };
 
 std::map<std::string, int> vk_map = {
@@ -139,65 +44,58 @@ std::map<std::string, int> vk_map = {
 	{"F10",		VK_F10},
 	{"F11",		VK_F11},
 	{"F12",		VK_F12},
+	{"-",		VK_SUBTRACT},
+	{"+",		VK_ADD},
 };
-#define KEY_COUNT (sizeof(vk_strs) / sizeof(char*))
+
 struct keymap_t {
 	INPUT inputs[4];
 	unsigned count;
 };
-keymap_t keymaps[KEY_COUNT];
 
-void init_keymaps() {
+keymap_t *get_key(const char *str) {
 	char buf[255];
-	keymap_t *key = keymaps;
+	static keymap_t key;
 	int ki;
-	for (int i = 0; i < KEY_COUNT; ++i, ++key) {
-		const char* str = vk_strs[i];
-		const char* p;
-		const char* org = str;
-		size_t n;
 
-		memset(key, 0, sizeof(keymap_t));
-		while (*org) {
-			p = strchr(org, '-');
-			if (p) {
-				n = p - org;
-				strncpy(buf, org, n);
-				org = p + 1;
-			}
-			else {
-				n = strlen(org);
-				strncpy(buf, org, n);
-				org += n;
-			}
+	const char* p;
+	const char* org = str;
+	size_t n;
 
-			if (n) {
-				buf[n] = '\0';
-				INPUT* input = &key->inputs[key->count++];
-				input->type = INPUT_KEYBOARD;
-				input->ki.dwFlags = (DWORD)0;
-				input->ki.wVk = (WORD)vk_map[buf];
-				input->ki.wScan = MapVirtualKey(input->ki.wVk, 0);
-			}
+	memset(&key, 0, sizeof(keymap_t));
+	while (*org) {
+		p = strchr(org, '~');
+		if (p) {
+			n = p - org;
+			strncpy(buf, org, n);
+			org = p + 1;
+		}
+		else {
+			n = strlen(org);
+			strncpy(buf, org, n);
+			org += n;
+		}
+
+		if (n) {
+			buf[n] = '\0';
+			INPUT* input = &key.inputs[key.count++];
+			input->type = INPUT_KEYBOARD;
+			input->ki.dwFlags = (DWORD)0;
+			input->ki.wVk = (WORD)vk_map[buf];
+			input->ki.wScan = MapVirtualKey(input->ki.wVk, 0);
 		}
 	}
+	return &key;
 }
 
 void ShowLastError() {
-	// Retrieve the system error message for the last-error code
 	DWORD ERROR_ID = GetLastError();
 	void* MsgBuffer = nullptr;
-	//LCID lcid;
-	//GetLocaleInfoEx(L"en-US", LOCALE_RETURN_NUMBER | LOCALE_ILANGUAGE, (wchar_t*)& lcid, sizeof(lcid));
-
-	//get error message and attach it to Msgbuffer
 	FormatMessageW(
 		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		NULL, ERROR_ID, 0, (wchar_t*)& MsgBuffer, 0, NULL);
-	//concatonate string to DisplayBuffer
 	const std::wstring DisplayBuffer = L" failed with error " + std::to_wstring(ERROR_ID) + L": " + static_cast<wchar_t*>(MsgBuffer);
 
-	// Display the error message and exit the process
 	MessageBoxExW(NULL, DisplayBuffer.c_str(), L"Error", MB_ICONERROR | MB_OK, 0);
 }
 
@@ -284,9 +182,21 @@ public:
 	}
 
 	void save() {
+		for (int i = 0; i < m_size; ++i) {
+			if (m_bmp[i] >= 128) {
+				m_bmp[i] = 255;
+			}
+			else {
+				m_bmp[i] = 0;
+			}
+		}
 		FILE* fp = fopen("capture.bmp", "w");
 		fwrite(m_buffer, m_buffersize, 1, fp); 
 		fclose(fp);
+	}
+
+	int getc() {
+		return m_bmp[0];
 	}
 };
 
@@ -319,16 +229,8 @@ void send_input(int32_t keyvalue, bool is_up) {
 	SendInput(1, &input, sizeof(INPUT));
 }
 
-void send_key(unsigned event) {
-	if (event < 1) {
-		return;
-	}
-	event--;
-	if (event >= KEY_COUNT) {
-		return;
-	}
-
-	keymap_t* key = &keymaps[event];
+void send_key(const char *str) {
+	keymap_t* key = get_key(str);
 	for (int i = 0; i < key->count; i++) {
 		INPUT* input = &key->inputs[i];
 		input->ki.dwFlags = (DWORD)0;
@@ -340,14 +242,33 @@ void send_key(unsigned event) {
 		input->ki.dwFlags = (DWORD)KEYEVENTF_KEYUP;
 	}
 	SendInput(key->count, key->inputs, sizeof(INPUT));
-	printf("%s\n", vk_strs[event]);
+	printf("%s\n", str);
 }
 
-void handle_event(unsigned long long event) {
-	event -= MARK1;
-	event %= 100;
+static char text_buf[1024];
+bool handle_text(const char *text) {
+	int j = 0;
+	for (int i = 0; i < 1020; i++) {
+		char c = text[i];
+		if (!c) {
+			break;
+		}
+		if (c != ' ' && c != '\n' && c != '\r') {
+			text_buf[j++] = c;
+		}
+	}
+	if (!j) {
+		return false;
+	}
+	text_buf[j] = '\0';
+	printf("%s\n", text_buf);
 
-	send_key(event);
+	if (s_map.find(text) == s_map.end()) {
+		return false;
+	}
+
+	send_key(s_map[text].c_str());
+	return true;
 }
 
 int main(int argc, char **argv)
@@ -358,7 +279,7 @@ int main(int argc, char **argv)
 	unsigned height = 25;
 	bool storage = false;
 	bool capture = false;
-
+	
 	FILE *f = fopen("watch.cfg", "r");
 	if (f) {
 		fscanf(f, "%d %d %u %u", &x, &y, &width, &height);
@@ -403,8 +324,6 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	init_keymaps();
-
 	int screen_height = GetSystemMetrics(SM_CYSCREEN);
 	int screen_width = GetSystemMetrics(SM_CXSCREEN);
 	printf("screen_width = %d, screen_height = %d\n", screen_width, screen_height);
@@ -423,7 +342,7 @@ again:
 
 		char* out;
 		tesseract::TessBaseAPI* api = new tesseract::TessBaseAPI();
-		if (api->Init(NULL, "eng")) {
+		if (api->Init(NULL, "chi_sim+eng+chi_sim_vert")) {
 			fprintf(stderr, "Could not initialize tesseract.\n");
 			exit(1);
 		}
@@ -438,18 +357,15 @@ again:
 			}
 			pix->xres = 70;
 			pix->yres = 70;
-			api->SetImage(pix);	// Get OCR result	
-			out = api->GetUTF8Text();
-			unsigned long long val = atoll(out);
-			if (val >= MARK1 && val <= MARK2) {
-				if (old != val) {
-					old = val;
-					handle_event(old);
-					printf("%llu %llu\n", old, get_time() - t);
+			if (old != screen.getc()) {
+				api->SetImage(pix);
+				out = api->GetUTF8Text();
+				if (out) {
+					if (handle_text(out)) {
+						old = screen.getc();
+					}
 				}
 			}
-
-			delete[] out;
 			pixDestroy(&pix);
 			Sleep(20);
 		}
@@ -460,3 +376,18 @@ again:
 	return 0;
 }
 
+/*
+tesseract ll.cn.exp0.tif ll.cn.exp0 -l chi_sim --psm 7 batch.nochop makebox
+echo "cn 0 0 0 0 0" > font_properties
+tesseract ll.cn.exp0.tif ll.cn.exp0 nobatch box.train
+unicharset_extractor ll.cn.exp0.box
+shapeclustering -F font_properties -U unicharset -O ll.unicharset ll.test.exp0.tr
+mftraining -F font_properties -U unicharset -O ll.unicharset ll.cn.exp0.tr
+cntraining ll.cn.exp0.tr
+mv inttemp ll.inttemp
+mv pffmtable ll.pffmtable
+mv shapetable ll.shapetable
+mv normproto ll.normproto
+combine_tessdata ll
+mv ll.traineddata /usr/share/tessdata/
+*/
